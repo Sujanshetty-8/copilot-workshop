@@ -20,6 +20,7 @@ const {
     href,
     type = 'button',
     fullWidth = false,
+    'data-testid': testId,
     class: className,
     ...rest
 } = Astro.props;
@@ -38,16 +39,23 @@ const sizes: Record<NonNullable<Props['size']>, string> = {
     md: 'px-6 py-3',
 };
 
-const classes = [base, variants[variant], sizes[size], fullWidth && 'w-full', className];
+const classes = [
+    base,
+    variants[variant],
+    sizes[size],
+    'min-h-11',
+    fullWidth && 'w-full',
+    className,
+];
 ---
 
 {
     href ? (
-        <a href={href} class:list={classes} {...rest}>
+        <a href={href} data-testid={testId} class:list={classes} {...rest}>
             <slot />
         </a>
     ) : (
-        <button type={type} class:list={classes} {...rest}>
+        <button type={type} data-testid={testId} class:list={classes} {...rest}>
             <slot />
         </button>
     )
