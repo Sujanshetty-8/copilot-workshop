@@ -63,4 +63,45 @@ describe('games data-access helpers', () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
     });
+
+    it('filters games by one or more categories', async () => {
+        await seedGames(db, 1);
+        const [otherCategory] = await db
+            .insert(categories)
+            .values({ name: 'Puzzle', description: 'other' })
+            .returning({ id: categories.id });
+        await db.insert(games).values({
+            title: 'Puzzle Game',
+            description: 'Description',
+            starRating: 4,
+            categoryId: otherCategory.id,
+            publisherId: 1,
+        });
+
+        const filtered = await getAllGames(db, { categoryIds: [otherCategory.id] });
+        expect(filtered.map((game) => game.title)).toEqual(['Puzzle Game']);
+    });
+
+    it('combines category and publisher filters', async () => {
+        await seedGames(db, 1);
+        const [otherPublisher] = await db
+            .insert(publishers)
+            .values({ name: 'Pub Two', description: 'other' })
+            .returning({ id: publishers.id });
+        await db.insert(games).values({
+            title: 'Other Game',
+            description: 'Description',
+            starRating: 4,
+            categoryId: 1,
+            publisherId: otherPublisher.id,
+        });
+
+        const filtered = await getAllGames(db, { categoryIds: [1], publisherId: otherPublisher.id });
+        expect(filtered.map((game) => game.title)).toEqual(['Other Game']);
+    });
+
+    it('returns an empty list when filters match no games', async () => {
+        await seedGames(db, 1);
+        expect(await getAllGames(db, { publisherId: 99999 })).toEqual([]);
+    });
 });
