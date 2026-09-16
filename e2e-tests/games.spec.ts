@@ -1,6 +1,50 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should filter games by category and publisher and preserve selections in the URL', async ({ page }) => {
+    await page.goto('/');
+    const gamesGrid = page.getByTestId('games-grid');
+    await expect(gamesGrid).toBeVisible();
+    const initialCount = await page.getByTestId('game-card').count();
+    const visibleCards = page.locator('[data-testid="game-card"]:not([hidden])');
+    const category = page.locator('input[name="category"]').first();
+    const categoryValue = await category.inputValue();
+    const publisherFilter = page.getByTestId('publisher-filter');
+    const publisherValue = await publisherFilter.locator('option').nth(1).getAttribute('value');
+    const categoryCount = await page.getByTestId('game-card').evaluateAll((cards, selectedCategory) =>
+      cards.filter((card) => card.getAttribute('data-game-category-id') === selectedCategory).length,
+      categoryValue,
+    );
+    const combinedCount = await page.getByTestId('game-card').evaluateAll((cards, selected) =>
+      cards.filter((card) =>
+        card.getAttribute('data-game-category-id') === selected?.category &&
+        card.getAttribute('data-game-publisher-id') === selected?.publisher,
+      ).length,
+      { category: categoryValue, publisher: publisherValue },
+    );
+
+    await test.step('Filter by a category', async () => {
+      await category.check();
+      await expect(visibleCards).toHaveCount(categoryCount);
+      await expect(page).toHaveURL(new RegExp(`category=${categoryValue}`));
+    });
+
+    await test.step('Combine the category with a publisher filter', async () => {
+      if (!publisherValue) throw new Error('Expected a publisher filter option.');
+      await publisherFilter.selectOption(publisherValue);
+      await expect(visibleCards).toHaveCount(combinedCount);
+      await expect(page).toHaveURL(new RegExp(`category=${categoryValue}&publisher=${publisherValue}`));
+      expect(await visibleCards.count()).toBeLessThan(initialCount);
+    });
+
+    await test.step('Reload and retain the selected filters', async () => {
+      await page.reload();
+      await expect(page.getByTestId(`category-filter-${categoryValue}`)).toBeChecked();
+      await expect(page.getByTestId('publisher-filter')).toHaveValue(publisherValue ?? '');
+      await expect(visibleCards).toHaveCount(combinedCount);
+    });
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
