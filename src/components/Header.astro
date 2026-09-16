@@ -26,6 +26,16 @@ import Menu from '../assets/icons/menu.svg';
       </div>
       <div class="text-xl font-bold"><a href="/" class="hover:underline focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700 rounded" data-testid="site-logo">Tailspin Toys</a></div>
     </div>
+    <button
+      id="contrast-toggle"
+      type="button"
+      class="min-h-11 rounded-lg border border-white/70 px-3 py-2 text-sm font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700"
+      aria-label="Enable high contrast mode"
+      aria-pressed="false"
+      data-testid="contrast-toggle"
+    >
+      High contrast
+    </button>
   </div>
 </header>
 
@@ -33,6 +43,30 @@ import Menu from '../assets/icons/menu.svg';
   // Toggle menu visibility when hamburger is clicked
   const menuToggle = document.getElementById('menu-toggle');
   const menu = document.getElementById('menu');
+  const contrastToggle = document.getElementById('contrast-toggle');
+  const contrastStorageKey = 'tailspin-high-contrast';
+
+  const updateContrastToggle = (enabled: boolean) => {
+    if (!contrastToggle) return;
+    contrastToggle.setAttribute('aria-pressed', String(enabled));
+    contrastToggle.setAttribute('aria-label', `${enabled ? 'Disable' : 'Enable'} high contrast mode`);
+    contrastToggle.textContent = enabled ? 'Standard contrast' : 'High contrast';
+  };
+
+  if (contrastToggle) {
+    const contrastEnabled = document.documentElement.classList.contains('high-contrast');
+    updateContrastToggle(contrastEnabled);
+
+    contrastToggle.addEventListener('click', () => {
+      const enabled = document.documentElement.classList.toggle('high-contrast');
+      updateContrastToggle(enabled);
+      try {
+        localStorage.setItem(contrastStorageKey, String(enabled));
+      } catch {
+        // Keep the current page usable if storage is unavailable.
+      }
+    });
+  }
   
   if (menuToggle && menu) {
     menuToggle.addEventListener('click', () => {
